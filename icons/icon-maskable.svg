@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Compteur WC">
+  <rect width="64" height="64" fill="#000000"/>
+  <!-- Même pictogramme, réduit pour tenir dans la zone de sécurité (80 % centrés). -->
+  <g transform="translate(32 32) scale(0.72) translate(-32 -31)">
+    <g fill="#ffffff">
+      <rect x="21" y="8" width="22" height="11" rx="3"/>
+      <path d="M17.4 27.5c1.4 10.4 6.6 18 14.6 18s13.2-7.6 14.6-18z"/>
+      <path d="M32 19.5c8.8 0 16 3.4 16 7.5s-7.2 7.5-16 7.5-16-3.4-16-7.5 7.2-7.5 16-7.5z"/>
+      <rect x="27" y="43" width="10" height="7"/>
+      <rect x="20" y="48.5" width="24" height="5.5" rx="2.75"/>
+    </g>
+    <ellipse cx="32" cy="27" rx="8.6" ry="3.7" fill="#000000"/>
+  </g>
+</svg>

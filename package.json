@@ -1,0 +1,19 @@
+{
+  "name": "compteur-wc",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Compteur de passages aux toilettes : PWA hors ligne, sans dépendance.",
+  "scripts": {
+    "start": "node tests/server.mjs",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:e2e": "playwright test",
+    "captures": "node tests/screenshots.mjs",
+    "icons": "node tools/make-icons.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

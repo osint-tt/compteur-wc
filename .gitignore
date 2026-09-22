@@ -1,0 +1,11 @@
+node_modules/
+captures/
+test-results/
+playwright-report/
+.playwright/
+
+# Fichiers de travail locaux (ne sont pas publiés)
+CAHIER_DES_CHARGES.md
+PROGRESS.md
+DECISIONS.md
+CLAUDE.md
