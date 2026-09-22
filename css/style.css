@@ -126,7 +126,7 @@ input {
   max-width: 520px;
   margin: 0 auto;
   padding: calc(var(--safe-t) + 12px) calc(var(--safe-r) + 16px)
-           calc(var(--safe-b) + 148px) calc(var(--safe-l) + 16px);
+           calc(var(--safe-b) + 132px) calc(var(--safe-l) + 16px);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -154,6 +154,9 @@ input {
 }
 
 .topbar-actions { display: flex; gap: 4px; }
+
+.topbar--day h1 { font-size: 17px; }
+.topbar--day .icon-btn { width: 40px; }
 
 .icon-btn {
   width: 44px;
@@ -251,7 +254,7 @@ input {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 13px 4px;
+  padding: 13px 0;
   text-align: left;
   min-height: 52px;
 }
@@ -288,7 +291,13 @@ input {
 .empty {
   color: var(--muted);
   font-size: 15px;
-  padding: 10px 4px;
+  padding: 10px 0;
+}
+
+/* Message seul dans une carte ("Pas encore de données") : centré et aéré. */
+.card > .empty:only-child {
+  text-align: center;
+  padding: 26px 8px 24px;
 }
 
 /* ---------------------------------------------------------- graphique */
