@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import {
-  openApp, readStored, sheet, counter, entries, addEntry,
+  openApp, readStored, sheet, counter, entries, toast, addEntry,
 } from './helpers.js';
 import { emptyState, stableState } from '../fixtures.mjs';
 
@@ -175,4 +175,45 @@ test('fichier invalide : refusé, données intactes', async ({ page }) => {
     await expect(sheet(page)).toHaveCount(0);
     expect(await readStored(page)).toEqual(before);
   }
+});
+
+test('après minuit, « aujourd’hui » change au retour au premier plan', async ({ page }) => {
+  await openApp(page, { state: emptyState(), time: '2026-09-21T23:59:00+02:00' });
+  await expect(page.locator('.day-head .date')).toHaveText('Lundi 21 septembre');
+
+  await addEntry(page, 'Caca', 'IUT');
+  await expect(counter(page, 'caca')).toHaveText('1');
+
+  // Minuit passe pendant que l'app est restée ouverte.
+  await page.clock.setFixedTime(new Date('2026-09-22T00:05:00+02:00'));
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+
+  await expect(page.locator('.day-head .date')).toHaveText('Mardi 22 septembre');
+  await expect(counter(page, 'caca')).toHaveText('0'); // le passage d'hier reste à hier
+  await expect(page.locator('.empty').first()).toHaveText('Rien pour l’instant aujourd’hui.');
+
+  await page.goto('/#/jour/2026-09-21');
+  await expect(counter(page, 'caca')).toHaveText('1');
+});
+
+test('si le stockage refuse d’enregistrer, l’app le dit clairement', async ({ page }) => {
+  await page.addInitScript(() => {
+    const vrai = Storage.prototype.setItem;
+    Storage.prototype.setItem = function setItem(key, value) {
+      if (key === 'compteur-wc') {
+        const erreur = new Error('quota');
+        erreur.name = 'QuotaExceededError';
+        throw erreur;
+      }
+      return vrai.call(this, key, value);
+    };
+  });
+  await page.goto('/');
+  await expect(page.locator('#app .topbar')).toBeVisible();
+
+  await addEntry(page, 'Caca', 'IUT');
+
+  // Message immédiat, et rappel visible sur l'écran : jamais d'échec silencieux.
+  await expect(toast(page)).toContainText('Stockage plein');
+  await expect(page.locator('.storage-error')).toContainText('Stockage plein');
 });

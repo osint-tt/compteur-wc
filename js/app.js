@@ -42,13 +42,16 @@ function vibrate() {
   } catch { /* certains navigateurs refusent : sans conséquence */ }
 }
 
+/** @returns {boolean} false si rien n'a pu être enregistré (le message reste affiché). */
 function persist() {
   try {
     saveState(state);
     storageError = null;
+    return true;
   } catch (error) {
     storageError = error.message;
     toast(error.message);
+    return false;
   }
 }
 
@@ -551,9 +554,11 @@ function addEntries(typeValue, place) {
   const { time } = sheet;
 
   state.entries.push(...created);
-  persist();
+  const saved = persist();
   closeSheet();
   render();
+  // Enregistrement impossible : on laisse le message d'erreur, pas de fausse confirmation.
+  if (!saved) return;
   vibrate();
 
   const label = typeValue === 'both'
@@ -594,9 +599,10 @@ function deleteEntry() {
     return;
   }
   const [removed] = state.entries.splice(index, 1);
-  persist();
+  const saved = persist();
   closeSheet();
   render();
+  if (!saved) return;
   toast('Supprimé', {
     undo: () => {
       state.entries.splice(Math.min(index, state.entries.length), 0, removed);
