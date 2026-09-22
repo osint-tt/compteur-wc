@@ -159,10 +159,13 @@ test('une nouvelle version : bandeau, rechargement, données intactes', async ({
     await page.reload();
     await waitForServiceWorker(page);
 
-    // Nouvelle version publiée : on incrémente comme le ferait une vraie publication.
-    for (const file of [join(root, 'js', 'version.js'), join(root, 'sw.js')]) {
+    // Nouvelle version publiée : on incrémente comme le ferait une vraie publication,
+    // quelle que soit la version courante du dépôt.
+    const versionFile = join(root, 'js', 'version.js');
+    const actuelle = (await readFile(versionFile, 'utf8')).match(/'(\d+\.\d+\.\d+)'/)[1];
+    for (const file of [versionFile, join(root, 'sw.js')]) {
       const source = await readFile(file, 'utf8');
-      await writeFile(file, source.replace("'1.0.0'", "'9.9.9'"));
+      await writeFile(file, source.replaceAll(`'${actuelle}'`, "'9.9.9'"));
     }
 
     await page.evaluate(async () => {

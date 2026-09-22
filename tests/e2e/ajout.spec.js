@@ -200,3 +200,61 @@ test('la feuille se ferme avec le bouton Fermer et avec le fond', async ({ page 
   await page.locator('.sheet-backdrop').click({ position: { x: 10, y: 10 } });
   await expect(sheet(page)).toHaveCount(0);
 });
+
+test('modifier l’heure ne reconstruit pas la feuille', async ({ page }) => {
+  await openAddSheet(page);
+  // On marque la feuille : si elle est reconstruite, la marque disparaît
+  // (et l'animation d'ouverture repartirait de zéro à chaque tap).
+  await page.evaluate(() => {
+    document.querySelector('.sheet').dataset.temoin = 'intacte';
+    document.querySelector('.sheet-backdrop').dataset.temoin = 'intacte';
+  });
+
+  const minus = sheet(page).getByRole('button', { name: '15 minutes plus tôt' });
+  const plus = sheet(page).getByRole('button', { name: '15 minutes plus tard' });
+
+  for (let i = 0; i < 6; i += 1) await minus.click();
+  await expect(timeValue(page)).toHaveText('12:45');
+  for (let i = 0; i < 3; i += 1) await plus.click();
+  await expect(timeValue(page)).toHaveText('13:30');
+
+  await expect(page.locator('.sheet')).toHaveAttribute('data-temoin', 'intacte');
+  await expect(page.locator('.sheet-backdrop')).toHaveAttribute('data-temoin', 'intacte');
+
+  // Le type, le jour et le lieu non plus ne reconstruisent rien.
+  await typeButton(page, 'Caca').click();
+  await sheet(page).getByRole('button', { name: 'Hier' }).click();
+  await expect(page.locator('.sheet')).toHaveAttribute('data-temoin', 'intacte');
+  await expect(typeButton(page, 'Caca')).toHaveAttribute('aria-pressed', 'true');
+  await expect(sheet(page).getByRole('button', { name: 'Hier' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sheet(page).locator('.place-btn').first()).toBeEnabled();
+
+  // Et l'enregistrement part bien sur les valeurs affichées.
+  await placeButton(page, 'IUT').click();
+  const stored = await readStored(page);
+  expect(stored.entries[0]).toMatchObject({ type: 'caca', time: '13:30', date: '2026-09-20' });
+});
+
+test('taps rapides sur −15 : aucun appui perdu', async ({ page }) => {
+  await openAddSheet(page);
+  const minus = sheet(page).locator('[data-action="shift-time"][data-value="-15"]');
+
+  // 8 taps tactiles enchaînés : 14:15 -> 12:15.
+  for (let i = 0; i < 8; i += 1) await minus.tap();
+
+  await expect(timeValue(page)).toHaveText('12:15');
+});
+
+test('le bouton −15 se réactive dès qu’on quitte 00:00', async ({ page }) => {
+  await openApp(page, { state: emptyState(), time: '2026-09-21T00:07:00+02:00' });
+  await openAddSheet(page);
+  const minus = sheet(page).getByRole('button', { name: '15 minutes plus tôt' });
+  const plus = sheet(page).getByRole('button', { name: '15 minutes plus tard' });
+
+  await expect(minus).toBeDisabled();
+  await plus.click();
+  await expect(minus).toBeEnabled();
+  await minus.click();
+  await expect(timeValue(page)).toHaveText('00:00');
+  await expect(minus).toBeDisabled();
+});

@@ -495,6 +495,44 @@ function renderSheet() {
   }
 }
 
+/* Mises à jour ciblées : on retouche ce qui change dans la feuille ouverte, sans la
+   reconstruire. Reconstruire relançait l'animation d'ouverture à chaque tap et
+   remplaçait le bouton sous le doigt, ce qui faisait sauter des appuis rapides. */
+
+const sheetButtons = (action) => sheetRoot.querySelectorAll(`[data-action="${action}"]`);
+
+function syncTime() {
+  const display = sheetRoot.querySelector('[data-time]');
+  if (display) display.textContent = sheet.time;
+  const minutes = L.timeToMinutes(sheet.time);
+  for (const button of sheetButtons('shift-time')) {
+    button.disabled = Number(button.dataset.value) < 0
+      ? minutes <= L.MIN_TIME_MINUTES
+      : minutes >= L.MAX_TIME_MINUTES;
+  }
+}
+
+function syncTypes() {
+  for (const button of sheetButtons('set-type')) {
+    button.setAttribute('aria-pressed', String(button.dataset.value === sheet.type));
+  }
+  // Les lieux restent grisés tant qu'aucun type n'est choisi (ajout seulement).
+  const locked = sheet.mode === 'add' && !sheet.type;
+  for (const button of sheetButtons('pick-place')) button.disabled = locked;
+}
+
+function syncDay() {
+  for (const button of sheetButtons('set-day')) {
+    button.setAttribute('aria-pressed', String(button.dataset.value === sheet.dayChoice));
+  }
+}
+
+function syncPlaces() {
+  for (const button of sheetButtons('pick-place')) {
+    button.setAttribute('aria-pressed', String(button.dataset.id === sheet.placeId));
+  }
+}
+
 function openEntrySheet(options) {
   const key = todayKey();
   sheet = {
@@ -618,9 +656,12 @@ function confirmDialog() {
   const value = input ? input.value : undefined;
   const result = sheet.onConfirm(value);
   if (result && result.error) {
+    // On affiche l'erreur sans refaire le dialogue : le texte saisi et le curseur restent.
     sheet.field = value;
     sheet.error = result.error;
-    renderSheet();
+    const message = sheetRoot.querySelector('.field-error');
+    if (message) message.textContent = result.error;
+    if (input) input.focus();
     return;
   }
   closeSheet();
@@ -853,21 +894,21 @@ function onAction(action, el) {
     case 'set-type':
       if (!sheet) break;
       sheet.type = el.dataset.value;
-      renderSheet();
+      syncTypes();
       break;
 
     case 'set-day': {
       if (!sheet) break;
       sheet.dayChoice = el.dataset.value;
       sheet.date = el.dataset.value === 'yesterday' ? L.addDays(todayKey(), -1) : todayKey();
-      renderSheet();
+      syncDay();
       break;
     }
 
     case 'shift-time':
       if (!sheet) break;
       sheet.time = L.shiftTime(sheet.time, Number(el.dataset.value));
-      renderSheet();
+      syncTime();
       break;
 
     case 'pick-place': {
@@ -879,7 +920,7 @@ function onAction(action, el) {
         addEntries(sheet.type, place);
       } else {
         sheet.placeId = place.id;
-        renderSheet();
+        syncPlaces();
       }
       break;
     }
