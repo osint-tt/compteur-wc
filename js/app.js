@@ -460,9 +460,12 @@ function dialogSheetHTML() {
        <p class="field-error" role="alert">${esc(sheet.error || '')}</p>`
     : '';
   const text = sheet.text ? `<p class="dialog-text">${esc(sheet.text)}</p>` : '';
+  const cancel = sheet.cancelLabel === null
+    ? ''
+    : `<button type="button" class="btn" data-action="close-sheet">${esc(sheet.cancelLabel || 'Annuler')}</button>`;
   const body = `${text}${field}
     <div class="sheet-actions">
-      <button type="button" class="btn" data-action="close-sheet">Annuler</button>
+      ${cancel}
       <button type="button" class="btn btn--primary" data-action="dialog-confirm">${esc(sheet.confirmLabel)}</button>
     </div>`;
   return sheetShell(sheet.title, body);
@@ -713,7 +716,8 @@ async function handleImportFile(file) {
     openDialog({
       title: 'Import impossible',
       text: `${result.error} Tes données n’ont pas été modifiées.`,
-      confirmLabel: 'Fermer',
+      confirmLabel: 'D’accord',
+      cancelLabel: null,
       onConfirm: () => null,
     });
     return;
