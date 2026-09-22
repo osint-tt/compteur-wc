@@ -24,8 +24,9 @@ Pour restaurer : **Paramètres → Importer une sauvegarde** (un résumé est af
 ## Modifier l'app plus tard
 
 1. Changer le code.
-2. Incrémenter la version dans `js/version.js` **et** dans `package.json` (un test unitaire vérifie
-   qu'elles sont d'accord ; c'est aussi le nom du cache du service worker).
+2. Incrémenter la version aux trois endroits : `js/version.js`, `sw.js` et `package.json`.
+   Un test unitaire échoue si elles ne sont pas identiques. C'est le changement de `sw.js` qui fait
+   détecter la mise à jour au téléphone, et son numéro sert de nom de cache.
 3. Lancer les tests : `npm test`.
 4. Commiter et pousser sur `main`.
 
@@ -54,6 +55,6 @@ servis tels quels. L'app n'a aucune dépendance et ne charge aucune ressource ex
     js/logic.js            logique pure : heures, dates, stats, validation
     js/storage.js          localStorage (clé « compteur-wc »), migration, export/import
     js/app.js              interface, navigation, feuilles
-    js/version.js          numéro de version (source unique)
-    sw.js                  service worker : cache d'abord, hors ligne
+    js/version.js          numéro de version affiché par l'app
+    sw.js                  service worker : cache d'abord, hors ligne, mises à jour
     tests/                 tests unitaires, tests e2e, serveur statique

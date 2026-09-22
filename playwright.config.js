@@ -19,7 +19,9 @@ const phone = {
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  workers: 4,
+  // Le WebKit de Playwright sous Windows meurt quand trop de contextes tournent
+  // en parallèle : 2 workers, c’est stable et la suite reste rapide.
+  workers: 2,
   retries: 0,
   reporter: [['list']],
   timeout: 30_000,

@@ -8,7 +8,10 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
+// Par défaut la racine du dépôt ; ROOT permet de servir une copie (test de mise à jour).
+const ROOT = process.env.ROOT
+  ? `${normalize(process.env.ROOT)}${sep}`
+  : fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.env.PORT || 5173);
 
 const TYPES = {
@@ -54,6 +57,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
+// PORT=0 laisse le système choisir un port libre : l'adresse réelle est annoncée ici.
 server.listen(PORT, '127.0.0.1', () => {
-  process.stdout.write(`Compteur WC sur http://127.0.0.1:${PORT}/\n`);
+  process.stdout.write(`Compteur WC sur http://127.0.0.1:${server.address().port}/\n`);
 });

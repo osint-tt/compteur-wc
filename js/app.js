@@ -972,21 +972,29 @@ function registerServiceWorker() {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloadOnControllerChange) location.reload();
   });
+
+  // Un worker n'annonce une mise à jour que s'il y en avait déjà un aux commandes :
+  // à la toute première installation, il n'y a rien à annoncer.
+  const track = (worker) => {
+    if (!worker) return;
+    const check = () => {
+      if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(worker);
+    };
+    worker.addEventListener('statechange', check);
+    check();
+  };
+
   window.addEventListener('load', async () => {
     try {
-      const registration = await navigator.serviceWorker.register('./sw.js');
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        showUpdateBanner(registration.waiting);
-      }
-      registration.addEventListener('updatefound', () => {
-        const installing = registration.installing;
-        if (!installing) return;
-        installing.addEventListener('statechange', () => {
-          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(installing);
-          }
-        });
-      });
+      // updateViaCache 'none' : sw.js est toujours revérifié sur le réseau,
+      // jamais servi par le cache HTTP, sinon une mise à jour pourrait passer inaperçue.
+      const registration = await navigator.serviceWorker
+        .register('./sw.js', { updateViaCache: 'none' });
+      // Le nouveau worker peut déjà être en cours d'installation ou en attente
+      // au moment où on s'abonne : on regarde les deux, puis les suivants.
+      track(registration.installing);
+      track(registration.waiting);
+      registration.addEventListener('updatefound', () => track(registration.installing));
     } catch {
       // hors ligne ou service worker refusé : l'app fonctionne quand même
     }

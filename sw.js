@@ -2,10 +2,13 @@
    Cache d'abord pour les fichiers de l'app, index.html en secours pour les navigations.
    Ne supprime que les caches préfixés "compteur-wc-" : le domaine est partagé. */
 
-importScripts('./js/version.js');
+/* Version de l'app. Elle doit rester identique à celle de js/version.js :
+   un test unitaire le vérifie. C'est volontairement une copie et non un import,
+   car le navigateur ne détecte une mise à jour que si le contenu de CE fichier change. */
+const VERSION = '1.0.0';
 
 const CACHE_PREFIX = 'compteur-wc-';
-const CACHE_NAME = CACHE_PREFIX + self.APP_VERSION;
+const CACHE_NAME = CACHE_PREFIX + VERSION;
 
 const ASSETS = [
   './',
@@ -24,7 +27,15 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      // On force le réseau : sinon le cache HTTP pourrait remettre en cache d'anciens fichiers.
+      await Promise.all(ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' }))));
+    } catch {
+      await cache.addAll(ASSETS);
+    }
+  })());
 });
 
 self.addEventListener('activate', (event) => {

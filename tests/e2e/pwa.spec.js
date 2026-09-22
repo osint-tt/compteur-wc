@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
+import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { openApp, counter, entries, waitForServiceWorker, openAddSheet } from './helpers.js';
 import { emptyState, stableState, FIXED_NOW, STORAGE_KEY } from '../fixtures.mjs';
 
@@ -14,17 +17,27 @@ async function serverAnswers(port) {
   }
 }
 
-async function startServer(port) {
+async function startServer(root) {
+  // Port choisi par le système : deux tests en parallèle ne peuvent pas se gêner.
   const child = spawn(process.execPath, ['tests/server.mjs'], {
-    env: { ...process.env, PORT: String(port) },
-    stdio: 'ignore',
+    env: { ...process.env, PORT: '0', ...(root ? { ROOT: root } : {}) },
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  const port = await new Promise((resolve, reject) => {
+    let out = '';
+    const timer = setTimeout(() => reject(new Error('Le serveur de test n’a pas annoncé de port')), 15_000);
+    child.stdout.on('data', (chunk) => {
+      out += chunk;
+      const found = out.match(/127\.0\.0\.1:(\d+)/);
+      if (found) { clearTimeout(timer); resolve(Number(found[1])); }
+    });
   });
   for (let i = 0; i < 60; i += 1) {
-    if (await serverAnswers(port)) return child;
+    if (await serverAnswers(port)) return { child, port };
     await wait(100);
   }
   child.kill();
-  throw new Error(`Le serveur de test n'a pas démarré sur le port ${port}`);
+  throw new Error(`Le serveur de test ne répond pas sur le port ${port}`);
 }
 
 async function stopServer(child, port) {
@@ -40,10 +53,9 @@ async function stopServer(child, port) {
  * Vrai test hors ligne : l'app est servie par un serveur dédié, que l'on éteint
  * pour de bon avant de recharger. Plus rien ne peut répondre à part le cache.
  */
-test('hors ligne : l’app se recharge et garde ses données', async ({ page, browserName }) => {
-  const port = browserName === 'webkit' ? 5181 : 5180;
+test('hors ligne : l’app se recharge et garde ses données', async ({ page }) => {
+  const { child: server, port } = await startServer();
   const origin = `http://127.0.0.1:${port}`;
-  const server = await startServer(port);
 
   try {
     await page.clock.setFixedTime(new Date(FIXED_NOW));
@@ -120,6 +132,71 @@ test('les caches et les données de prise-de-masse ne sont jamais touchés', asy
   expect(keys.filter((k) => k.startsWith('compteur-wc'))).toEqual(['compteur-wc']);
   expect(await page.evaluate(() => localStorage.getItem('prise-de-masse')))
     .toBe(JSON.stringify({ seances: 42 }));
+});
+
+/**
+ * Mise à jour, de bout en bout : une nouvelle version est publiée sur un serveur
+ * dédié, le navigateur doit la détecter, le bandeau apparaître, le rechargement
+ * basculer sur la nouvelle version, les anciens caches de l'app disparaître,
+ * ceux du voisin rester, et les données ne pas bouger d'un poil.
+ */
+test('une nouvelle version : bandeau, rechargement, données intactes', async ({ page }) => {
+  const root = await mkdtemp(join(tmpdir(), 'compteur-wc-maj-'));
+  for (const name of ['index.html', 'sw.js', 'manifest.webmanifest', 'css', 'js', 'icons']) {
+    await cp(name, join(root, name), { recursive: true });
+  }
+  const { child: server, port } = await startServer(root);
+  const origin = `http://127.0.0.1:${port}`;
+
+  try {
+    await page.clock.setFixedTime(new Date(FIXED_NOW));
+    await page.goto(`${origin}/`);
+    await page.evaluate(async ([key, value]) => {
+      localStorage.setItem(key, value);
+      // Une app voisine sur le même domaine, qui ne doit rien subir.
+      await (await caches.open('prise-de-masse-test')).put('/voisin', new Response('intact'));
+    }, [STORAGE_KEY, JSON.stringify(stableState())]);
+    await page.reload();
+    await waitForServiceWorker(page);
+
+    // Nouvelle version publiée : on incrémente comme le ferait une vraie publication.
+    for (const file of [join(root, 'js', 'version.js'), join(root, 'sw.js')]) {
+      const source = await readFile(file, 'utf8');
+      await writeFile(file, source.replace("'1.0.0'", "'9.9.9'"));
+    }
+
+    await page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.update();
+    });
+
+    const banner = page.locator('#update-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('Mise à jour disponible');
+
+    await banner.getByRole('button', { name: 'Recharger' }).click();
+
+    // La page se recharge toute seule sur la nouvelle version.
+    await page.waitForFunction(() => self.APP_VERSION === '9.9.9', null, { timeout: 20_000 });
+    await expect(banner).toBeHidden();
+
+    // Les données sont intactes...
+    await expect(counter(page, 'caca')).toHaveText('1');
+    await expect(entries(page)).toHaveCount(1);
+    await page.goto(`${origin}/#/parametres`);
+    await expect(page.locator('.version')).toHaveText('Version 9.9.9');
+
+    // ...l'ancien cache de l'app est supprimé, celui du voisin est intact.
+    const caches_ = await page.evaluate(async () => ({
+      noms: await caches.keys(),
+      voisin: await (await caches.open('prise-de-masse-test')).match('/voisin').then((r) => (r ? r.text() : null)),
+    }));
+    expect(caches_.noms.filter((n) => n.startsWith('compteur-wc-'))).toEqual(['compteur-wc-9.9.9']);
+    expect(caches_.voisin).toBe('intact');
+  } finally {
+    server.kill();
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('aucune requête vers un autre domaine', async ({ page }) => {
