@@ -4,6 +4,9 @@ Petite app perso pour compter ses passages aux toilettes : cacas et pipis, avec 
 plus des statistiques sur 7, 30 ou 90 jours. Ajout en 2 taps. Tout reste sur le téléphone : aucun
 compte, aucun serveur, aucune requête vers l'extérieur, et ça marche hors connexion.
 
+Deux boutons seulement : **Pipi**, ou **Caca** — qui enregistre aussi le pipi qui va avec (deux
+passages, même heure, même lieu). Le pipi en trop, si jamais, se supprime comme n'importe quel passage.
+
 **L'app : https://osint-tt.github.io/compteur-wc/**
 
 ## L'installer sur le téléphone

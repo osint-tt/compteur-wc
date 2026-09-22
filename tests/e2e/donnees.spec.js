@@ -10,18 +10,18 @@ const themeColor = (page) => page.evaluate(() => document.querySelector('meta[na
 
 test('les données survivent au rechargement', async ({ page }) => {
   await openApp(page, { state: emptyState() });
-  await addEntry(page, 'Caca', 'IUT');
-  await addEntry(page, 'Pipi', 'Chez moi');
+  await addEntry(page, 'caca', 'IUT');   // caca + pipi
+  await addEntry(page, 'pipi', 'Chez moi');
 
   await page.reload();
 
   await expect(counter(page, 'caca')).toHaveText('1');
-  await expect(counter(page, 'pipi')).toHaveText('1');
-  await expect(entries(page)).toHaveCount(2);
+  await expect(counter(page, 'pipi')).toHaveText('2');
+  await expect(entries(page)).toHaveCount(3);
 
   // Et même après avoir « fermé » l'app (nouvelle navigation).
   await page.goto('/');
-  await expect(entries(page)).toHaveCount(2);
+  await expect(entries(page)).toHaveCount(3);
 });
 
 test('thème sombre puis clair, mémorisé après rechargement', async ({ page }) => {
@@ -110,7 +110,7 @@ test('export par le partage natif quand il est disponible', async ({ page }) => 
 test('import : résumé, confirmation, et données identiques', async ({ page }) => {
   const backup = stableState();
   await openApp(page, { state: emptyState() });
-  await addEntry(page, 'Caca', 'IUT'); // des données différentes avant import
+  await addEntry(page, 'caca', 'IUT'); // des données différentes avant import
 
   await page.goto('/#/parametres');
   await page.setInputFiles('#import-file', {
@@ -137,7 +137,7 @@ test('import : résumé, confirmation, et données identiques', async ({ page })
 
 test('import annulé : rien n’est modifié', async ({ page }) => {
   await openApp(page, { state: emptyState() });
-  await addEntry(page, 'Pipi', 'Public');
+  await addEntry(page, 'pipi', 'Public');
   const before = await readStored(page);
 
   await page.goto('/#/parametres');
@@ -154,7 +154,7 @@ test('import annulé : rien n’est modifié', async ({ page }) => {
 
 test('fichier invalide : refusé, données intactes', async ({ page }) => {
   await openApp(page, { state: emptyState() });
-  await addEntry(page, 'Pipi', 'Public');
+  await addEntry(page, 'pipi', 'Public');
   const before = await readStored(page);
 
   await page.goto('/#/parametres');
@@ -181,7 +181,7 @@ test('après minuit, « aujourd’hui » change au retour au premier plan', asyn
   await openApp(page, { state: emptyState(), time: '2026-09-21T23:59:00+02:00' });
   await expect(page.locator('.day-head .date')).toHaveText('Lundi 21 septembre');
 
-  await addEntry(page, 'Caca', 'IUT');
+  await addEntry(page, 'caca', 'IUT');
   await expect(counter(page, 'caca')).toHaveText('1');
 
   // Minuit passe pendant que l'app est restée ouverte.
@@ -211,7 +211,7 @@ test('si le stockage refuse d’enregistrer, l’app le dit clairement', async (
   await page.goto('/');
   await expect(page.locator('#app .topbar')).toBeVisible();
 
-  await addEntry(page, 'Caca', 'IUT');
+  await addEntry(page, 'caca', 'IUT');
 
   // Message immédiat, et rappel visible sur l'écran : jamais d'échec silencieux.
   await expect(toast(page)).toContainText('Stockage plein');

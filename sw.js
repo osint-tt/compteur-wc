@@ -5,7 +5,7 @@
 /* Version de l'app. Elle doit rester identique à celle de js/version.js :
    un test unitaire le vérifie. C'est volontairement une copie et non un import,
    car le navigateur ne détecte une mise à jour que si le contenu de CE fichier change. */
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 
 const CACHE_PREFIX = 'compteur-wc-';
 const CACHE_NAME = CACHE_PREFIX + VERSION;

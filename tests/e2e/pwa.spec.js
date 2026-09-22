@@ -78,7 +78,7 @@ test('hors ligne : l’app se recharge et garde ses données', async ({ page }) 
 
     // Et l'ajout fonctionne toujours hors ligne.
     await openAddSheet(page);
-    await page.locator('.sheet').getByRole('button', { name: 'Pipi', exact: true }).click();
+    await page.locator('.sheet').locator('.type-btn[data-value="pipi"]').click();
     await page.locator('.sheet .place-btn', { hasText: /^IUT$/ }).click();
     await expect(counter(page, 'pipi')).toHaveText('1');
 
@@ -124,7 +124,7 @@ test('les caches et les données de prise-de-masse ne sont jamais touchés', asy
 
   // L'app n'écrit qu'une seule clé de stockage, et seulement la sienne.
   await openAddSheet(page);
-  await page.locator('.sheet').getByRole('button', { name: 'Caca', exact: true }).click();
+  await page.locator('.sheet').locator('.type-btn[data-value="caca"]').click();
   await page.locator('.sheet .place-btn', { hasText: /^IUT$/ }).click();
   await expect(counter(page, 'caca')).toHaveText('1');
 

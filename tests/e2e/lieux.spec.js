@@ -49,7 +49,7 @@ test('un nom vide ou en double est refusé', async ({ page }) => {
 });
 
 test('renommer un lieu : l’historique affiche le nouveau nom', async ({ page }) => {
-  await addEntry(page, 'Caca', 'IUT');
+  await addEntry(page, 'caca', 'IUT');
   await expect(entries(page).first()).toContainText('IUT');
 
   await settings(page);
@@ -67,7 +67,7 @@ test('renommer un lieu : l’historique affiche le nouveau nom', async ({ page }
 });
 
 test('supprimer un lieu : l’historique garde l’ancien nom', async ({ page }) => {
-  await addEntry(page, 'Caca', 'IUT');
+  await addEntry(page, 'caca', 'IUT');
 
   await settings(page);
   await page.getByRole('button', { name: 'Supprimer IUT' }).click();
@@ -79,7 +79,7 @@ test('supprimer un lieu : l’historique garde l’ancien nom', async ({ page })
   );
 
   await page.goto('/#/');
-  await expect(entries(page)).toHaveCount(1);
+  await expect(entries(page)).toHaveCount(2); // le caca et son pipi
   await expect(entries(page).first()).toContainText('IUT');
 
   await openAddSheet(page);
@@ -134,7 +134,7 @@ test('le lieu renommé reste sélectionnable pour un nouvel ajout', async ({ pag
   await page.getByRole('button', { name: 'Enregistrer' }).click();
 
   await page.goto('/#/');
-  await addEntry(page, 'Pipi', 'Maison');
+  await addEntry(page, 'pipi', 'Maison');
   await expect(entries(page).first()).toContainText('Maison');
   expect((await readStored(page)).entries[0].placeId).toBe('maison');
 });

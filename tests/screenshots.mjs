@@ -83,7 +83,7 @@ for (const theme of ['light', 'dark']) {
   await page.getByRole('button', { name: 'Ajouter un passage' }).click();
   await page.waitForSelector(sheetSelector);
   await shoot(page, `${theme}-03-feuille-ajout`);
-  await page.locator('.sheet').getByRole('button', { name: 'Caca', exact: true }).click();
+  await page.locator('.sheet .type-btn[data-value="caca"]').click();
   await shoot(page, `${theme}-04-feuille-ajout-type`);
 
   // 3. Message de confirmation après un ajout.

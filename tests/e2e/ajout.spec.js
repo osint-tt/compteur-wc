@@ -14,50 +14,60 @@ test('l’heure proposée est l’heure arrondie au quart d’heure', async ({ p
   await expect(timeValue(page)).toHaveText('14:15'); // il est 14:08
 });
 
-test('ajout en 2 taps : Caca puis IUT', async ({ page }) => {
+test('ajout en 2 taps : Caca puis IUT — avec le pipi qui va avec', async ({ page }) => {
   await expect(counter(page, 'caca')).toHaveText('0');
   await expect(page.locator('.empty').first()).toHaveText('Rien pour l’instant aujourd’hui.');
 
-  await addEntry(page, 'Caca', 'IUT');
+  await addEntry(page, 'caca', 'IUT');
 
+  // Un caca compte aussi un pipi.
   await expect(counter(page, 'caca')).toHaveText('1');
-  await expect(counter(page, 'pipi')).toHaveText('0');
-  await expect(entries(page)).toHaveCount(1);
+  await expect(counter(page, 'pipi')).toHaveText('1');
+  await expect(entries(page)).toHaveCount(2);
   await expect(entries(page).first()).toContainText('14:15');
-  await expect(entries(page).first()).toContainText('Caca');
   await expect(entries(page).first()).toContainText('IUT');
+  await expect(entries(page)).toContainText(['Caca', 'Pipi']);
 
   // Le graphique apparaît avec la barre d'aujourd'hui.
   await expect(page.locator('.chart-bar--today')).toHaveCount(1);
 
   // Message de confirmation.
-  await expect(toast(page)).toContainText('Caca ajouté · 14:15 · IUT');
+  await expect(toast(page)).toContainText('Caca et pipi ajoutés · 14:15 · IUT');
   await expect(toast(page).getByRole('button', { name: 'Annuler' })).toBeVisible();
 
   const stored = await readStored(page);
-  expect(stored.entries).toHaveLength(1);
-  expect(stored.entries[0]).toMatchObject({
-    type: 'caca', date: TODAY, time: '14:15', placeId: 'iut', placeName: 'IUT',
-  });
+  expect(stored.entries).toHaveLength(2);
+  expect(stored.entries.map((e) => e.type).sort()).toEqual(['caca', 'pipi']);
+  for (const entry of stored.entries) {
+    expect(entry).toMatchObject({ date: TODAY, time: '14:15', placeId: 'iut', placeName: 'IUT' });
+  }
 });
 
-test('« Les deux » crée un caca et un pipi', async ({ page }) => {
-  await addEntry(page, 'Les deux', 'Chez moi');
+test('un pipi seul ne crée qu’un pipi', async ({ page }) => {
+  await addEntry(page, 'pipi', 'Chez moi');
 
-  await expect(counter(page, 'caca')).toHaveText('1');
+  await expect(counter(page, 'caca')).toHaveText('0');
   await expect(counter(page, 'pipi')).toHaveText('1');
-  await expect(entries(page)).toHaveCount(2);
-  await expect(toast(page)).toContainText('Caca et pipi ajoutés · 14:15 · Chez moi');
+  await expect(entries(page)).toHaveCount(1);
+  await expect(toast(page)).toContainText('Pipi ajouté · 14:15 · Chez moi');
 
   const stored = await readStored(page);
-  expect(stored.entries.map((e) => e.type).sort()).toEqual(['caca', 'pipi']);
-  expect(new Set(stored.entries.map((e) => e.time))).toEqual(new Set(['14:15']));
-  expect(new Set(stored.entries.map((e) => e.placeId))).toEqual(new Set(['maison']));
+  expect(stored.entries).toHaveLength(1);
+  expect(stored.entries[0]).toMatchObject({ type: 'pipi', placeId: 'maison' });
+});
+
+test('deux boutons de type, et Caca annonce le pipi', async ({ page }) => {
+  await openAddSheet(page);
+  await expect(sheet(page).locator('.type-btn')).toHaveCount(2);
+  await expect(typeButton(page, 'caca')).toContainText('Caca');
+  await expect(typeButton(page, 'caca')).toContainText('+ pipi');
+  await expect(typeButton(page, 'pipi')).toContainText('Pipi');
+  await expect(typeButton(page, 'pipi')).not.toContainText('+ pipi');
 });
 
 test('« Hier » enregistre le passage la veille', async ({ page }) => {
   await openAddSheet(page);
-  await typeButton(page, 'Pipi').click();
+  await typeButton(page, 'pipi').click();
   await sheet(page).getByRole('button', { name: 'Hier' }).click();
   await placeButton(page, 'Public').click();
 
@@ -88,14 +98,14 @@ test('les lieux sont grisés tant qu’aucun type n’est choisi', async ({ page
   await expect(places).toHaveCount(5);
   for (let i = 0; i < 5; i += 1) await expect(places.nth(i)).toBeDisabled();
 
-  await typeButton(page, 'Caca').click();
+  await typeButton(page, 'caca').click();
   for (let i = 0; i < 5; i += 1) await expect(places.nth(i)).toBeEnabled();
 });
 
 test('aucun type n’est sélectionné à l’ouverture', async ({ page }) => {
   await openAddSheet(page);
-  for (const name of ['Caca', 'Pipi', 'Les deux']) {
-    await expect(typeButton(page, name)).toHaveAttribute('aria-pressed', 'false');
+  for (const value of ['caca', 'pipi']) {
+    await expect(typeButton(page, value)).toHaveAttribute('aria-pressed', 'false');
   }
 });
 
@@ -150,37 +160,46 @@ test('l’heure est bornée à 23:45 et l’arrondi ne change pas de jour', asyn
   await sheet(page).getByRole('button', { name: '15 minutes plus tôt' }).click();
   await expect(timeValue(page)).toHaveText('23:30');
 
-  await typeButton(page, 'Caca').click();
+  await typeButton(page, 'caca').click();
   await placeButton(page, 'IUT').click();
   const stored = await readStored(page);
-  expect(stored.entries[0].date).toBe(TODAY); // toujours le 21, pas le 22
+  expect(stored.entries).toHaveLength(2);
+  for (const entry of stored.entries) {
+    expect(entry.date).toBe(TODAY); // toujours le 21, pas le 22
+    expect(entry.time).toBe('23:30');
+  }
 });
 
 test('« Annuler » retire le passage qui vient d’être ajouté', async ({ page }) => {
-  await addEntry(page, 'Caca', 'IUT');
-  await expect(counter(page, 'caca')).toHaveText('1');
+  await addEntry(page, 'pipi', 'IUT');
+  await expect(counter(page, 'pipi')).toHaveText('1');
 
   await toast(page).getByRole('button', { name: 'Annuler' }).click();
 
-  await expect(counter(page, 'caca')).toHaveText('0');
+  await expect(counter(page, 'pipi')).toHaveText('0');
   await expect(entries(page)).toHaveCount(0);
   await expect(toast(page)).toHaveCount(0);
   expect((await readStored(page)).entries).toHaveLength(0);
 });
 
-test('« Annuler » retire les deux passages de « Les deux »', async ({ page }) => {
-  await addEntry(page, 'Les deux', 'IUT');
+test('« Annuler » retire le caca ET le pipi qui l’accompagne', async ({ page }) => {
+  await addEntry(page, 'caca', 'IUT');
+  await expect(entries(page)).toHaveCount(2);
+
   await toast(page).getByRole('button', { name: 'Annuler' }).click();
+
   await expect(entries(page)).toHaveCount(0);
+  await expect(counter(page, 'caca')).toHaveText('0');
+  await expect(counter(page, 'pipi')).toHaveText('0');
   expect((await readStored(page)).entries).toHaveLength(0);
 });
 
 test('le message de confirmation disparaît au bout de 5 secondes', async ({ page }) => {
-  await addEntry(page, 'Caca', 'IUT');
+  await addEntry(page, 'pipi', 'IUT');
   await expect(toast(page)).toBeVisible();
   await expect(toast(page)).toHaveCount(0, { timeout: 8_000 });
   // Le passage, lui, reste.
-  await expect(counter(page, 'caca')).toHaveText('1');
+  await expect(counter(page, 'pipi')).toHaveText('1');
 });
 
 test('la feuille se ferme avec le bouton retour du téléphone', async ({ page }) => {
@@ -222,17 +241,21 @@ test('modifier l’heure ne reconstruit pas la feuille', async ({ page }) => {
   await expect(page.locator('.sheet-backdrop')).toHaveAttribute('data-temoin', 'intacte');
 
   // Le type, le jour et le lieu non plus ne reconstruisent rien.
-  await typeButton(page, 'Caca').click();
+  await typeButton(page, 'caca').click();
   await sheet(page).getByRole('button', { name: 'Hier' }).click();
   await expect(page.locator('.sheet')).toHaveAttribute('data-temoin', 'intacte');
-  await expect(typeButton(page, 'Caca')).toHaveAttribute('aria-pressed', 'true');
+  await expect(typeButton(page, 'caca')).toHaveAttribute('aria-pressed', 'true');
   await expect(sheet(page).getByRole('button', { name: 'Hier' })).toHaveAttribute('aria-pressed', 'true');
   await expect(sheet(page).locator('.place-btn').first()).toBeEnabled();
 
   // Et l'enregistrement part bien sur les valeurs affichées.
   await placeButton(page, 'IUT').click();
   const stored = await readStored(page);
-  expect(stored.entries[0]).toMatchObject({ type: 'caca', time: '13:30', date: '2026-09-20' });
+  expect(stored.entries).toHaveLength(2);
+  expect(stored.entries.map((e) => e.type).sort()).toEqual(['caca', 'pipi']);
+  for (const entry of stored.entries) {
+    expect(entry).toMatchObject({ time: '13:30', date: '2026-09-20' });
+  }
 });
 
 test('taps rapides sur −15 : aucun appui perdu', async ({ page }) => {

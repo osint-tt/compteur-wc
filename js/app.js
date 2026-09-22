@@ -406,15 +406,16 @@ function sheetShell(title, body, label) {
 
 function entrySheetHTML() {
   const editing = sheet.mode === 'edit';
-  const types = editing
-    ? [['caca', 'Caca'], ['pipi', 'Pipi']]
-    : [['caca', 'Caca'], ['pipi', 'Pipi'], ['both', 'Les deux']];
 
-  const typeButtons = types.map(([value, label]) => {
-    const icons = value === 'both'
+  const typeButtons = [['caca', 'Caca'], ['pipi', 'Pipi']].map(([value, label]) => {
+    // À l'ajout, un caca compte aussi un pipi : le bouton le montre et l'annonce.
+    const withPipi = !editing && value === 'caca';
+    const icons = withPipi
       ? `<span class="type-icons">${typeIcon('caca')}${typeIcon('pipi')}</span>`
       : typeIcon(value);
-    return `<button type="button" class="type-btn" data-action="set-type" data-value="${value}" aria-pressed="${sheet.type === value}">${icons}<span>${label}</span></button>`;
+    // La ligne de note existe dans les deux boutons pour que « Caca » et « Pipi » s'alignent.
+    const note = editing ? '' : `<span class="type-note">${withPipi ? '+ pipi' : ''}</span>`;
+    return `<button type="button" class="type-btn" data-action="set-type" data-value="${value}" aria-pressed="${sheet.type === value}">${icons}<span>${label}</span>${note}</button>`;
   }).join('');
 
   const dayPicker = sheet.fixedDate
@@ -437,7 +438,7 @@ function entrySheetHTML() {
 
   const body = `<div class="sheet-group">
       <p class="sheet-label">Type</p>
-      <div class="type-row${editing ? ' type-row--two' : ''}">${typeButtons}</div>
+      <div class="type-row">${typeButtons}</div>
     </div>
     <div class="sheet-group">
       <p class="sheet-label">Heure</p>
@@ -577,8 +578,9 @@ function hideToast() {
 
 /* ------------------------------------------------------------- actions */
 
+/** Un caca s'accompagne toujours d'un pipi : il enregistre donc les deux passages. */
 function addEntries(typeValue, place) {
-  const types = typeValue === 'both' ? ['caca', 'pipi'] : [typeValue];
+  const types = typeValue === 'caca' ? ['caca', 'pipi'] : ['pipi'];
   const created = types.map((type) => ({
     id: newId(),
     type,
@@ -599,9 +601,7 @@ function addEntries(typeValue, place) {
   if (!saved) return;
   vibrate();
 
-  const label = typeValue === 'both'
-    ? 'Caca et pipi ajoutés'
-    : (typeValue === 'caca' ? 'Caca ajouté' : 'Pipi ajouté');
+  const label = typeValue === 'caca' ? 'Caca et pipi ajoutés' : 'Pipi ajouté';
   toast(`${label} · ${time} · ${place.name}`, {
     undo: () => {
       state.entries = state.entries.filter((entry) => !ids.includes(entry.id));
@@ -618,7 +618,8 @@ function saveEntryEdit() {
     return;
   }
   const place = state.places.find((p) => p.id === sheet.placeId);
-  entry.type = sheet.type === 'both' ? entry.type : sheet.type;
+  // En modification, on ne touche qu'à ce passage-là : pas de pipi ajouté.
+  entry.type = sheet.type;
   entry.date = sheet.date;
   entry.time = sheet.time;
   if (place) {

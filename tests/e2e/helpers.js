@@ -33,8 +33,9 @@ export async function openAddSheet(page) {
   await expect(sheet(page)).toBeVisible();
 }
 
-export function typeButton(page, name) {
-  return sheet(page).getByRole('button', { name, exact: true });
+/** @param {'caca'|'pipi'} value */
+export function typeButton(page, value) {
+  return sheet(page).locator(`.type-btn[data-value="${value}"]`);
 }
 
 export function placeButton(page, name) {
