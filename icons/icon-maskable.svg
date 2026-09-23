@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Compteur WC">
   <rect width="64" height="64" fill="#000000"/>
-  <!-- Meme pictogramme, reduit pour tenir dans la zone de securite (80 % centres). -->
-  <g transform="translate(32 32) scale(0.72) translate(-32 -32)">
+  <!-- Version « maskable » : le lanceur Android applique son propre masque (rond,
+       arrondi, goutte...). Tout doit donc tenir dans le cercle de sécurité central
+       (80 % de la largeur), liseré compris — d'où un pictogramme plus petit. -->
+  <g transform="translate(32 32) scale(0.62) translate(-32 -32)">
     <g fill="#ffffff">
       <path d="M13 11h9a3 3 0 0 1 3 3v20H10V14a3 3 0 0 1 3-3z"/>
       <rect x="21" y="26" width="34" height="8" rx="4"/>
@@ -9,4 +11,5 @@
       <rect x="29" y="48" width="18" height="6" rx="2.4"/>
     </g>
   </g>
+  <rect x="11" y="11" width="42" height="42" rx="13" fill="none" stroke="#ffffff" stroke-width="2.2"/>
 </svg>

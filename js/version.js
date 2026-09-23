@@ -6,4 +6,4 @@
  * changement de `sw.js` qui fait détecter la mise à jour au navigateur. Un test unitaire
  * refuse que les deux (et `package.json`) divergent. À incrémenter partout à chaque mise en ligne.
  */
-self.APP_VERSION = '1.0.3';
+self.APP_VERSION = '1.0.4';
